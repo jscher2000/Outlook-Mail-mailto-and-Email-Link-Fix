@@ -1,6 +1,7 @@
 /* 
   Copyright 2018. Jefferson "jscher2000" Scher. License: MPL-2.0.
   version 0.1 - initial concept
+  version 0.2 - open new tab next to current page
 */
 
 // this URL launches the Inbox first, then a message on the side, very slow:
@@ -82,6 +83,7 @@ browser.menus.onClicked.addListener((menuInfo, currTab) => {
 	if (OWAUrl.length > 0){
 		browser.tabs.create({
 			url: OWAUrl,
+			index: currTab.index + 1,
 			active: true
 		}).then((newTab) => {
 			/* No action */;
