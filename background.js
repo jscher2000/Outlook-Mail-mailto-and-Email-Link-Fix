@@ -1,17 +1,29 @@
 /* 
-  Copyright 2018. Jefferson "jscher2000" Scher. License: MPL-2.0.
+  Copyright 2019. Jefferson "jscher2000" Scher. License: MPL-2.0.
   version 0.1 - initial concept
   version 0.2 - open new tab next to current page
+  version 0.5 - options page to specify which OWA to compose on (uses storage)
 */
 
-// this URL launches the Inbox first, then a message on the side, very slow:
-// const baseUrl = 'http://outlook.live.com/default.aspx?rru=compose&';
+/**** Create and populate data structure ****/
+// Default starting values
+var oPrefs = {
+	domain: "live.com"
+}
+// Update oPrefs from storage
+browser.storage.local.get("prefs").then((results) => {
+	if (results.prefs != undefined){
+		if (JSON.stringify(results.prefs) != '{}'){
+			var arrSavedPrefs = Object.keys(results.prefs)
+			for (var j=0; j<arrSavedPrefs.length; j++){
+				oPrefs[arrSavedPrefs[j]] = results.prefs[arrSavedPrefs[j]];
+			}
+		}
+	}
+}).catch((err) => {console.log('Error retrieving "prefs" from storage: '+err.message);});
 
-// This URL creates a stand-alone tab that gets "stranded" but it's faster:
-const baseUrl = 'https://outlook.live.com/mail/deeplink/compose?';
 
 /**** Context menu item ****/
-
 let linkcontext = browser.menus.create({
   id: "outlookmail_mailtolink",
   title: "New Outlook Mail message",
@@ -43,6 +55,7 @@ let selcontext = browser.menus.create({
 });
 
 browser.menus.onClicked.addListener((menuInfo, currTab) => {
+	var baseUrl = 'https://outlook.' + oPrefs.domain + '/mail/deeplink/compose?';
 	var OWAUrl = '';
 	switch (menuInfo.menuItemId) {
 		case 'outlookmail_mailtolink':
@@ -92,3 +105,20 @@ browser.menus.onClicked.addListener((menuInfo, currTab) => {
 		});
 	}
 });
+
+/**** MESSAGING ****/
+function handleMessage(request, sender, sendResponse) {
+	if ("get" in request) {
+		// Send oPrefs to Options page
+		sendResponse({
+			prefs: oPrefs
+		});
+	} else if ("update" in request) {
+		// Receive pref update from Options page, store to oPrefs, and commit to storage
+		var oSettings = request["update"];
+		oPrefs.domain = oSettings.domain;
+		browser.storage.local.set({prefs: oPrefs})
+			.catch((err) => {console.log('Error on browser.storage.local.set(): '+err.message);});
+	}
+}
+browser.runtime.onMessage.addListener(handleMessage);
