@@ -3,6 +3,7 @@
   version 0.1 - initial concept
   version 0.2 - open new tab next to current page
   version 0.5 - options page to specify which OWA to compose on (uses storage)
+  version 0.6 - customize menu depending on which OWA will be used
 */
 
 /**** Create and populate data structure ****/
@@ -11,7 +12,7 @@ var oPrefs = {
 	domain: "live.com"
 }
 // Update oPrefs from storage
-browser.storage.local.get("prefs").then((results) => {
+let getPrefs = browser.storage.local.get("prefs").then((results) => {
 	if (results.prefs != undefined){
 		if (JSON.stringify(results.prefs) != '{}'){
 			var arrSavedPrefs = Object.keys(results.prefs)
@@ -22,8 +23,7 @@ browser.storage.local.get("prefs").then((results) => {
 	}
 }).catch((err) => {console.log('Error retrieving "prefs" from storage: '+err.message);});
 
-
-/**** Context menu item ****/
+/**** Context menu items ****/
 let linkcontext = browser.menus.create({
   id: "outlookmail_mailtolink",
   title: "New Outlook Mail message",
@@ -52,6 +52,30 @@ let selcontext = browser.menus.create({
 	"16": "icons/mailto-outlook-16.png",
 	"32": "icons/mailto-outlook-32.png"
   }
+});
+
+/* Customize menu wording for Office 365 */
+var txtBase = 'New Outlook Mail message';
+function updateMenu(){
+	if (oPrefs.domain == 'live.com'){
+		txtBase = 'New Outlook Mail message';
+	} else {
+		txtBase = 'New Office 365 message';
+	}
+	browser.menus.update("outlookmail_mailtolink", {
+		title: txtBase
+	});
+	browser.menus.update("outlookmail_page", {
+		title: txtBase + " (page title, URL)"
+	});
+	browser.menus.update("outlookmail_selection", {
+		title: txtBase + " (with selected text)"
+	});
+}
+getPrefs.then(() => {
+	if (oPrefs.domain != 'live.com'){
+		updateMenu();
+	}
 });
 
 browser.menus.onClicked.addListener((menuInfo, currTab) => {
@@ -117,6 +141,7 @@ function handleMessage(request, sender, sendResponse) {
 		// Receive pref update from Options page, store to oPrefs, and commit to storage
 		var oSettings = request["update"];
 		oPrefs.domain = oSettings.domain;
+		updateMenu();
 		browser.storage.local.set({prefs: oPrefs})
 			.catch((err) => {console.log('Error on browser.storage.local.set(): '+err.message);});
 	}
