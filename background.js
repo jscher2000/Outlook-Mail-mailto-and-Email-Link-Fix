@@ -1,9 +1,10 @@
 /* 
-  Copyright 2019. Jefferson "jscher2000" Scher. License: MPL-2.0.
+  Copyright 2020. Jefferson "jscher2000" Scher. License: MPL-2.0.
   version 0.1 - initial concept
   version 0.2 - open new tab next to current page
   version 0.5 - options page to specify which OWA to compose on (uses storage)
   version 0.6 - customize menu depending on which OWA will be used
+  version 0.7 - handle multi-argument mailto links
 */
 
 /**** Create and populate data structure ****/
@@ -86,7 +87,34 @@ browser.menus.onClicked.addListener((menuInfo, currTab) => {
 			// Check the link protocol
 			var linkSplit = menuInfo.linkUrl.split(':');
 			if (linkSplit[0].toLowerCase() === 'mailto'){ // this is a mailto link
-				OWAUrl = baseUrl + 'to=' + encodeURIComponent(linkSplit[1]);
+				linkSplit = linkSplit[1].split('?');
+				OWAUrl = baseUrl + 'to=' + encodeURIComponent(linkSplit[0]);
+				// handle additional mailto parameters (0.7)
+				if (linkSplit.length > 1){
+					for (var i=1; i<linkSplit.length; i++){
+						var argSplit = linkSplit[i].split('&');
+						for (var j=0; j<argSplit.length; j++){
+							var param = argSplit[j].split('=');
+							switch (param[0].toLowerCase()) {
+								case 'cc':
+									OWAUrl += '&cc=' + encodeURIComponent(param[1]);
+									break;
+								case 'bcc':
+									OWAUrl += '&bcc=' + encodeURIComponent(param[1]);
+									break;
+								case 'subject':
+									OWAUrl += '&subject=' + encodeURIComponent(param[1]);
+									break;
+								case 'body':
+									OWAUrl += '&body=' + encodeURIComponent(param[1]);
+									break;
+								default:
+									// ignore other parameters for now
+							}
+						}
+					}
+				}
+
 			} else {	// this is not a mailto link
 				// Share link
 				console.log('What do to with this: '+menuInfo.linkUrl+'; text:'+menuInfo.linkText);
@@ -104,7 +132,10 @@ browser.menus.onClicked.addListener((menuInfo, currTab) => {
 			if (menuInfo.linkUrl){
 				var linkSplit = menuInfo.linkUrl.split(':');
 				if (linkSplit[0].toLowerCase() === 'mailto'){ // this is a mailto link
-					OWAUrl += 'to=' + encodeURIComponent(linkSplit[1]) + '&';
+					linkSplit = linkSplit[1].split('?');
+					OWAUrl += 'to=' + encodeURIComponent(linkSplit[0]);
+					// do not add mailto parameters because are going to get those from the page
+					OWAUrl += '&';
 				}
 			}
 			// this is Email Link for the page when text is selected

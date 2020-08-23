@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "Outlook Mail - mailto and Email Link Fix",
 	"description": "Right-click an email link to compose a new message in Outlook.com webmail. Pop-out style new tab needs to be closed after sending or discarding your message. Not an official Microsoft add-on.",
-	"version": "0.6",
+	"version": "0.7",
 	"applications":{
 		"gecko": {
 			"id": "{8e058153-ee66-4c9b-ab87-ff930d606e74}",
